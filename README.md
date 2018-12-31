@@ -14,10 +14,10 @@ Shoots lazer beam, provides info about entities it hits (Triggers are whiteliste
 * ```sm_hasprop <entity> <proptype[data/send]> <"propname">```  
 Checks if ent has prop  
   
-* ```sm_getentprop <returntype[i,f,s,v]> <entity> <proptype[Data/Send]/> <propname>```  
+* ```sm_getentprop <returntype[e,i,f,s,v]> <entity> <proptype[data/send]/> <propname>```  
 Retrieve prop value - Logs to error if incorrect returntype is specified for propname  
   
-* ```sm_setentprop <entity> <propType[Data/Send]> <propName> <Value[int,float,string,vector]>```  
+* ```sm_setentprop <entity> <proptype[data/send]> <propname> <Value[int,float,string,vector]>```  
 Sets prop value  
   
 * ```sm_setvariantstring <"variantStr"> <entity> <"inputstr"> | OPTIONAL: <activator> <caller> <outputid>```  
