@@ -18,7 +18,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.1"
+#define PLUGIN_VERSION "0.0.2"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -73,6 +73,7 @@ public void OnPluginStart() {
 	RegAdminCmd("sm_hasprop", cmdHasProp, ADMFLAG_GENERIC);
 	RegAdminCmd("sm_getentprop", cmdGetProp, ADMFLAG_ROOT);
 	RegAdminCmd("sm_setentprop", cmdSetProp, ADMFLAG_ROOT);
+	RegAdminCmd("sm_setentpropent", cmdSetPropEnt, ADMFLAG_ROOT);
 
 	RegAdminCmd("sm_setvariantstring", cmdSetVarStr, ADMFLAG_ROOT, "SetVariantString");
 	RegAdminCmd("sm_acceptentityinput", cmdEntInput, ADMFLAG_ROOT, "AcceptEntityInput");
@@ -327,6 +328,64 @@ public Action cmdSetProp(int client, int args) {
 	}
 
 	SetProp(client, entity, propType, buffer, newValue);
+
+	return Plugin_Handled;
+}
+
+public Action cmdSetPropEnt(int client, int args) {
+	if (args < 4) {
+		ReplyToCommand(client, "Usage: sm_setentpropent <entity> <propType[Data/Send]> <propName> <ent>");
+		return Plugin_Handled;
+	}
+
+	char buffer[32];
+	GetCmdArg(1, buffer, sizeof(buffer));
+	int entity1 = StringToInt(buffer);
+
+	if (!IsValidEntity(entity1)) {
+		ReplyToCommand(client, "Invalid entity %i", entity1);
+		return Plugin_Handled;
+	}
+
+	char sPropType[32];
+	GetCmdArg(2, sPropType, sizeof(sPropType));
+
+	PropType proptype;
+	if (StrEqual(buffer, "data", false)) {
+		proptype = Prop_Data;
+	}
+	else if (StrEqual(buffer, "send", false)) {
+		proptype = Prop_Send;
+	}
+	else {
+		ReplyToCommand(client, "Unknown prop type");
+		return Plugin_Handled;
+	}
+
+	char propname[32];
+	GetCmdArg(3, propname, sizeof(propname));
+
+	char classname1[32];
+	GetEntityClassname(entity1, classname1, sizeof(classname1));
+
+	if (!HasEntProp(entity1, proptype, buffer)) {
+		ReplyToCommand(client, "%i %s | No prop type %s for prop_%s", entity1, classname1, propname, proptype ? "data" : "send");
+		return Plugin_Handled;
+	}
+
+	GetCmdArg(4, buffer, sizeof(buffer));
+	int entity2 = StringToInt(buffer);
+
+	if (!IsValidEntity(entity2)) {
+		ReplyToCommand(client, "Invalid entity %i", entity2);
+		return Plugin_Handled;
+	}
+
+	char classname2[32];
+	GetEntityClassname(entity1, classname1, sizeof(classname2));
+
+	SetEntProp(entity1, proptype, propname, entity2);
+	ReplyToCommand(client, "%i %s | %s set to %i %s", entity1, classname1, propname, entity2, classname2);
 
 	return Plugin_Handled;
 }
