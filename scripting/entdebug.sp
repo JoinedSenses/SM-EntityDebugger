@@ -66,7 +66,7 @@ public Plugin myinfo = {
 }
 
 public void OnPluginStart() {
-	CreateConVar("sm_entitydebugger", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
+	CreateConVar("sm_entitydebugger_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
 	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC);
 	RegAdminCmd("sm_gethammerid", cmdGetHammerId, ADMFLAG_GENERIC);
 
