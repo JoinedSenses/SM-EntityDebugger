@@ -19,6 +19,9 @@ Retrieve prop value - Logs to error if incorrect returntype is specified for pro
   
 * ```sm_setentprop <entity> <proptype[data/send]> <propname> <Value[int,float,string,vector]>```  
 Sets prop value  
+
+* ```sm_setentpropent <entity1> <proptype[data/send]> <propname> <entity2>```  
+Sets prop ent value  
   
 * ```sm_setvariantstring <"variantStr"> <entity> <"inputstr"> | OPTIONAL: <activator> <caller> <outputid>```  
 Untested - Set variant string and run AcceptEntityInput(entity, "inputstr", activator, caller, outputit)  
