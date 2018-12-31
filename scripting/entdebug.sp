@@ -384,7 +384,7 @@ public Action cmdSetPropEnt(int client, int args) {
 	char classname2[32];
 	GetEntityClassname(entity1, classname1, sizeof(classname2));
 
-	SetEntProp(entity1, proptype, propname, entity2);
+	SetEntPropEnt(entity1, proptype, propname, entity2);
 	ReplyToCommand(client, "%i %s | %s set to %i %s", entity1, classname1, propname, entity2, classname2);
 
 	return Plugin_Handled;
