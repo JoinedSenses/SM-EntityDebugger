@@ -254,6 +254,10 @@ public Action cmdGetProp(int client, int args) {
 	}
 
 	switch (type[0]) {
+		case 'e', 'E': {
+			int value = GetEntPropEnt(entity, proptype, propname);
+			ReplyToCommand(client, "%i %s | prop_%s %s Value: %i", entity, classname, prop, propname, value);
+		}
 		case 'i', 'I': {
 			int value = GetEntProp(entity, proptype, propname);
 			ReplyToCommand(client, "%i %s | prop_%s %s Value: %i", entity, classname, prop, propname, value);
