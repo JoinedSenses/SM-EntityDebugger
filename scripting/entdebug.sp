@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.2"
+#define PLUGIN_VERSION "0.0.3"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -26,6 +26,8 @@ enum DataType {
 	TYPEFLOAT,
 	TYPESTRING
 }
+
+ConVar g_cvarTriggerFilter;
 
 ArrayList g_aVisibleEntities;
 
@@ -41,7 +43,7 @@ int g_iOffset_m_fEffects;
 bool g_bDebug[MAXPLAYERS+1];
 
 char g_sFilePath[128];
-char g_sEntityList[][] = {
+char g_sEntityFilterList[][] = {
 	"func_brush",
 	"func_button",
 	"func_door",
@@ -51,6 +53,7 @@ char g_sEntityList[][] = {
 	"prop_dynamic",
 	"trigger_capture_area",
 	"trigger_catapult",
+	"trigger_multiple",
 	"trigger_teleport",
 	"trigger_push"
 };
@@ -65,6 +68,8 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
 	CreateConVar("sm_entitydebugger_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
+	g_cvarTriggerFilter = CreateConVar("sm_entitydebugger_triggerfilter", "1", "Only provide information for triggers in the filter list?", FCVAR_NONE, true, 0.0, true, 1.0);
+
 	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC, "Toggle debug mode");
 	RegAdminCmd("sm_gethammerid", cmdGetHammerId, ADMFLAG_GENERIC, "Point, shoot, ???, profit");
 
@@ -76,6 +81,8 @@ public void OnPluginStart() {
 
 	RegAdminCmd("sm_setvariantstring", cmdSetVarStr, ADMFLAG_ROOT, "SetVariantString - Sets variant string and execs AcceptEntityInput");
 	RegAdminCmd("sm_acceptentityinput", cmdEntInput, ADMFLAG_ROOT, "AcceptEntityInput - Execs AcceptEntityInput");
+
+	RegAdminCmd("sm_triggerfilter", cmdTriggerFilter, ADMFLAG_ROOT, "Toggle trigger filter");
 
 	RegAdminCmd("sm_dumpentities", cmdDump, ADMFLAG_ROOT, "Logs entities to addons/sourcemod/logs/entities/map_name_entities.txt");
 
@@ -535,6 +542,13 @@ public Action cmdEntInput(int client, int args) {
 	return Plugin_Handled;
 }
 
+public Action cmdTriggerFilter(int client, int args) {
+	bool value;
+	value = g_cvarTriggerFilter.BoolValue = !g_cvarTriggerFilter.BoolValue;
+	PrintToEnabled(false, "Trigger filer %s", value ? "enabled" : "disabled");
+	return Plugin_Handled;
+}
+
 public Action cmdDump(int client, int args) {
 	char mapName[64];
 	GetCurrentMap(mapName, sizeof(mapName));
@@ -618,20 +632,22 @@ bool TREnumTrigger(int entity) {
 
 	int model = HasEntProp(entity, Prop_Data, "m_nModelIndex") ? GetEntProp(entity, Prop_Data, "m_nModelIndex") : -1;
 
-	for (int i = 0; i < sizeof(g_sEntityList); i++) {
-		if (StrEqual(classname, g_sEntityList[i])) {
-			PrintToEnabled(_, "\x05Ent:\x01 %i \x05ID:\x01 %i \x05Class:\x01 %s \x05Model:\x01 %i", entity, GetHammerId(entity), classname, model);
-			
-			showTrigger(entity);
-			return true;
-		}
+	if (g_cvarTriggerFilter.BoolValue) {
+		for (int i = 0; i < sizeof(g_sEntityFilterList); i++) {
+			if (StrEqual(classname, g_sEntityFilterList[i])) {
+				PrintToEnabled(_, "\x05Ent:\x01 %i \x05ID:\x01 %i \x05Class:\x01 %s \x05Model:\x01 %i", entity, GetHammerId(entity), classname, model);
+				
+				showTrigger(entity);
+				return true;
+			}
+		}		
+	}
+	else {
+		PrintToEnabled(_, "\x05Ent:\x01 %i \x05ID:\x01 %i \x05Class:\x01 %s \x05Model:\x01 %i", entity, GetHammerId(entity), classname, model);
+		showTrigger(entity);		
 	}
 
 	return true;
-}
-
-Action timerHideTrigger(Handle timer, int entity) {
-	hideTrigger(entity);
 }
 
 bool TREnumSolid(int entity) {
@@ -780,6 +796,9 @@ void PrintToEnabled(bool debugonly = true, const char[] msg, any ...) {
 
 void showTrigger(int entity) {
 	// some code i used from the sm_showtriggers plugin. makes triggers visible
+	SDKUnhook(entity, SDKHook_SetTransmit, hookSetTransmit);
+	SDKHook(entity, SDKHook_SetTransmit, hookSetTransmit);
+
 	int effectFlags = GetEntData(entity, g_iOffset_m_fEffects);
 	int edictFlags = GetEdictFlags(entity);
 
@@ -793,8 +812,6 @@ void showTrigger(int entity) {
 	SetEntData(entity, g_iOffset_m_fEffects, effectFlags);
 	ChangeEdictState(entity, g_iOffset_m_fEffects);
 	SetEdictFlags(entity, edictFlags);
-
-	SDKHook(entity, SDKHook_SetTransmit, hookSetTransmit);
 
 	CreateTimer(5.0, timerHideTrigger, entity);
 	g_aVisibleEntities.Push(entity);
@@ -817,6 +834,10 @@ void hideTrigger(int entity) {
 
 	SDKUnhook(entity, SDKHook_SetTransmit, hookSetTransmit);
 	g_aVisibleEntities.Erase(0);
+}
+
+Action timerHideTrigger(Handle timer, int entity) {
+	hideTrigger(entity);
 }
 
 public Action hookSetTransmit(int entity, int other) {
