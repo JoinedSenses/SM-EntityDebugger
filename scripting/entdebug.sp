@@ -606,7 +606,7 @@ void LazerBeam(int client) {
 		TE_SetupBeamPoints(origin, end, g_iBeamSprite, g_iHaloSprite, 0, 66, 10.0, 2.0, 2.0, 1, 1.0, {255, 255, 255, 255}, 0);
 		TE_SendToAll(0.1);
 
-		PrintToEnabled(_, "\x05Hit|\x01 %0.2f\x05,\x01 %0.2f\x05,\x01 %0.2f", end[0], end[1], end[2]);
+		PrintToEnabled(_, "\x05Hit|\x01 %0.2f %0.2f %0.2f", end[0], end[1], end[2]);
 	}
 
 	delete trace;
