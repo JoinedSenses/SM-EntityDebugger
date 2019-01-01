@@ -4,6 +4,10 @@ Tool for debugging maps/entities
 Requires (SM 1.10) or (SDKTools extension version + SM 1.9) found here:  
 https://github.com/JoinedSenses/Sourcemod-SDKTools
 
+## ConVars
+* ```sm_entitydebugger_triggerfilter```  
+Toggle use of the trigger filter: see g_sEntityFilterList. When enabled, only those in the list will be active
+
 ## Commands
 * ```sm_entdebug```  
 Toggle debug mode  
@@ -28,6 +32,9 @@ Untested - Set variant string and run AcceptEntityInput(entity, "inputstr", acti
   
 * ```sm_acceptentityinput <entity> <"inputstr"> | OPTIONAL: <activator> <caller> <outputid>```  
 Same as previous command, except it doesn't set variant string  
+
+* ```sm_triggerfiler```  
+Toggles the triggerfilter cvar  
   
 * ```sm_dumpentities```  
 Dumps entities to /addons/sourcemod/logs/entities/map_name_entities.log  
