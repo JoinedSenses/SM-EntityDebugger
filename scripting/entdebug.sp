@@ -255,6 +255,9 @@ public Action cmdGetProp(int client, int args) {
 		return Plugin_Handled;
 	}
 
+	/* I wish I knew of a way to retrieve ent prop data type instead of requiring a param. Errors with no info if incorrect params are used.
+	   Deathreus suggested using "inline SendPropType SendProp::GetType() const", which I think would mean an extension would need to be created for this.
+	   As far as I know, SourceMod doesn't provide this functionality. */
 	switch (type[0]) {
 		case 'e', 'E': {
 			int value = GetEntPropEnt(entity, proptype, propname);
@@ -279,7 +282,7 @@ public Action cmdGetProp(int client, int args) {
 			ReplyToCommand(client, "%i %s | prop_%s %s Value: {%0.2f, %0.2f, %0.2f}", entity, classname, prop, propname, value[0], value[1], value[2]);
 		}
 		default: {
-			ReplyToCommand(client, "Usage: sm_getentprop <type[i,f,s,v]> <entity> <propType[Data/Send]> <propName>");
+			ReplyToCommand(client, "Usage: sm_getentprop <type[e,i,f,s,v]> <entity> <proptype[send/data]> <propName>");
 		}
 	}
 	return Plugin_Handled;
@@ -288,7 +291,7 @@ public Action cmdGetProp(int client, int args) {
 public Action cmdSetProp(int client, int args) {
 	// Maybe consider adding param for return type instead of attempting to determine value data type - See: CheckType()
 	if (args < 4) {
-		ReplyToCommand(client, "Usage: sm_setentprop <entity> <propType[Data/Send]> <propName> <Value[int,float,string,vector]>");
+		ReplyToCommand(client, "Usage: sm_setentprop <entity> <proptype[send/data]> <propName> <Value[int,float,string,vector]>");
 		return Plugin_Handled;
 	}
 
