@@ -1,12 +1,10 @@
 /*
 	To Do:
-	- GetEntPropEnt
-	- SetEntPropEnt
 	- Continue testing (especially var str/ent input)
 	- Ability to retrieve more info from triggers?
 	- Maybe more info about cp's/tca's?
-	- Put on repo
-	- Post on AM
+	- Solicit feedback from others who would use this (mappers?)
+	- Maybe add support for things from other games - requires feedback
 	- Sleep
  */
 
@@ -67,18 +65,19 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
 	CreateConVar("sm_entitydebugger_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
-	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC);
-	RegAdminCmd("sm_gethammerid", cmdGetHammerId, ADMFLAG_GENERIC);
+	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC, "Toggle debug mode");
+	RegAdminCmd("sm_gethammerid", cmdGetHammerId, ADMFLAG_GENERIC, "Point, shoot, ???, profit");
 
-	RegAdminCmd("sm_hasprop", cmdHasProp, ADMFLAG_GENERIC);
-	RegAdminCmd("sm_getentprop", cmdGetProp, ADMFLAG_ROOT);
-	RegAdminCmd("sm_setentprop", cmdSetProp, ADMFLAG_ROOT);
-	RegAdminCmd("sm_setentpropent", cmdSetPropEnt, ADMFLAG_ROOT);
+	RegAdminCmd("sm_hasprop", cmdHasProp, ADMFLAG_GENERIC, "sm_hasprop <entity> <proptype[send/data]> <propname>");
+	RegAdminCmd("sm_getentprop", cmdGetProp, ADMFLAG_ROOT, "sm_getentprop <returntype[e,i,f,s,v]> <entity> <proptype[send/data]> <propname>");
+	RegAdminCmd("sm_setentprop", cmdSetProp, ADMFLAG_ROOT, "sm_setentprop <entity> <proptype[send/data]> <propname> <value(int,float,string,vector)>"); 
+	// Considering consolidating into above command to allow specifying type, instead of attempting to "intelligently" determine value type - see: CheckType()
+	RegAdminCmd("sm_setentpropent", cmdSetPropEnt, ADMFLAG_ROOT, "sm_setentpropent <entity1> <proptype[send/data]> <propname> <entity2>");
 
-	RegAdminCmd("sm_setvariantstring", cmdSetVarStr, ADMFLAG_ROOT, "SetVariantString");
-	RegAdminCmd("sm_acceptentityinput", cmdEntInput, ADMFLAG_ROOT, "AcceptEntityInput");
+	RegAdminCmd("sm_setvariantstring", cmdSetVarStr, ADMFLAG_ROOT, "SetVariantString - Sets variant string and execs AcceptEntityInput");
+	RegAdminCmd("sm_acceptentityinput", cmdEntInput, ADMFLAG_ROOT, "AcceptEntityInput - Execs AcceptEntityInput");
 
-	RegAdminCmd("sm_dumpentities", cmdDump, ADMFLAG_ROOT);
+	RegAdminCmd("sm_dumpentities", cmdDump, ADMFLAG_ROOT, "Logs entities to addons/sourcemod/logs/entities/map_name_entities.log");
 
 	HookEvent("controlpoint_starttouch", eventTouchCP);
 	HookEvent("teamplay_round_start", eventRoundStart);
@@ -90,7 +89,6 @@ public void OnPluginStart() {
 	g_iOffset_m_fEffects = FindSendPropInfo("CBaseEntity", "m_fEffects");
 
 	BuildPath(Path_SM, g_sFilePath, sizeof(g_sFilePath), "logs/entities");
-	
 	if (!DirExists(g_sFilePath)) {
 		CreateDirectory(g_sFilePath, 511);
 		if (!DirExists(g_sFilePath)) {
@@ -117,6 +115,7 @@ void Setup() {
 	char name[32];
 	char areaidx[3];
 	int entity;
+	// Hooks control points - Useful for TF2, unsure of other games
 	while ((entity = FindEntityByClassname(entity, "team_control_point")) != INVALID_ENT_REFERENCE) {
 		GetEntPropString(entity, Prop_Data, "m_iszPrintName", name, sizeof(name));
 		g_smCapturePoint.SetValue(name, entity);
@@ -125,12 +124,12 @@ void Setup() {
 		g_smCapturePointName.SetString(areaidx, name);
 		//g_iCPCount++;
 	}
-
+	// Hooks triggers for control points - Useful for TF2, unsure of other games
 	while ((entity = FindEntityByClassname(entity, "trigger_capture_area")) != INVALID_ENT_REFERENCE) {
 		SDKHook(entity, SDKHook_StartTouchPost, hookTCAStartTouchPost);
 		//g_iAreaCount++;
 	}
-
+	// Hooks teleports.
 	while ((entity = FindEntityByClassname(entity, "trigger_teleport")) != INVALID_ENT_REFERENCE) {
 		SDKHook(entity, SDKHook_StartTouch, hookTeleStartTouch);
 	}
@@ -140,6 +139,7 @@ public void OnPluginEnd() {
 	int len;
 	if ((len = g_aVisibleEntities.Length)) {
 		for (int i = 0; i < len; i++) {
+			// If there are still any visible triggers, hide them.
 			hideTrigger(g_aVisibleEntities.Get(i));
 		}
 	}
@@ -159,7 +159,7 @@ public Action cmdGetHammerId(int client, int args) {
 	if (!client) {
 		return Plugin_Handled;
 	}
-
+	// Trace ray, enumerates entities, prints some info, makes triggers visible
 	LazerBeam(client);
 	
 	return Plugin_Handled;
@@ -167,7 +167,7 @@ public Action cmdGetHammerId(int client, int args) {
 
 public Action cmdHasProp(int client, int args) {
 	if (args < 3) {
-		ReplyToCommand(client, "Useage: sm_hasprop <entity> <proptype> <propname>");
+		ReplyToCommand(client, "Usage: sm_hasprop <entity> <proptype[send/data]> <propname>");
 		return Plugin_Handled;
 	}
 
@@ -182,7 +182,7 @@ public Action cmdHasProp(int client, int args) {
 	}
 	
 	GetCmdArg(2, buffer, sizeof(buffer));
-
+	// Maybe consider using just d/s instead of full word
 	PropType proptype;
 	if (StrEqual(buffer, "data", false)) {
 		proptype = Prop_Data;
@@ -200,13 +200,13 @@ public Action cmdHasProp(int client, int args) {
 	char classname[32];
 	GetEntityClassname(entity, classname, sizeof(classname));
 
-	ReplyToCommand(client, "%i %s %s | %s", entity, classname, buffer, HasEntProp(entity, proptype, buffer) ? "Yes" : "No");
+	ReplyToCommand(client, "%i %s prop_%s %s | %s", entity, classname, proptype ? "data" : "send", buffer, HasEntProp(entity, proptype, buffer) ? "Yes" : "No");
 	return Plugin_Handled;
 }
 
 public Action cmdGetProp(int client, int args) {
 	if (args < 3) {
-		ReplyToCommand(client, "Usage: sm_getentprop <type[i,f,s,v]> <entity> <propType[Data/Send]> <propName>");
+		ReplyToCommand(client, "Usage: sm_getentprop <type[e,i,f,s,v]> <entity> <proptype[send/data]> <propName>");
 		return Plugin_Handled;
 	}
 
@@ -214,7 +214,8 @@ public Action cmdGetProp(int client, int args) {
 	GetCmdArg(1, type, sizeof(type));
 
 	if (strlen(type) > 1) {
-		ReplyToCommand(client, "Invalid parameter. Parameters: i, f, s, v");
+		// entity, int, float, string, vector
+		ReplyToCommand(client, "Invalid parameter. Parameters: e, i, f, s, v");
 		return Plugin_Handled;
 	}
 
@@ -285,6 +286,7 @@ public Action cmdGetProp(int client, int args) {
 }
 
 public Action cmdSetProp(int client, int args) {
+	// Maybe consider adding param for return type instead of attempting to determine value data type - See: CheckType()
 	if (args < 4) {
 		ReplyToCommand(client, "Usage: sm_setentprop <entity> <propType[Data/Send]> <propName> <Value[int,float,string,vector]>");
 		return Plugin_Handled;
@@ -334,7 +336,7 @@ public Action cmdSetProp(int client, int args) {
 
 public Action cmdSetPropEnt(int client, int args) {
 	if (args < 4) {
-		ReplyToCommand(client, "Usage: sm_setentpropent <entity> <propType[Data/Send]> <propName> <ent>");
+		ReplyToCommand(client, "Usage: sm_setentpropent <entity1> <proptype[send/data]> <propname> <entity2>");
 		return Plugin_Handled;
 	}
 
@@ -459,10 +461,12 @@ DataType CheckType(const char[] input, int size) {
 }
 
 public Action cmdSetVarStr(int client, int args) {
+	// i've never personally used setvarstring/acceptentityinput outside of some copy/paste stocks. Not exactly certain of usecase for this.
 	if (args < 3) {
 		ReplyToCommand(client, "Usage: sm_setvariantstring <\"variantStr\"> <entity> <\"inputstr\"> | <activator> <caller> <outputid>");
 		return Plugin_Handled;		
 	}
+
 	char varstr[63];
 	GetCmdArg(1, varstr, sizeof(varstr));
 
@@ -495,6 +499,7 @@ public Action cmdSetVarStr(int client, int args) {
 }
 
 public Action cmdEntInput(int client, int args) {
+	// i've never personally used setvarstring/acceptentityinput outside of some copy/paste stocks. Not exactly certain of usecase for this.
 	if (args < 2) {
 		ReplyToCommand(client, "Usage: sm_setvariantstring <entity> <\"inputstr\"> | <activator> <caller> <outputid>");
 		return Plugin_Handled;		
@@ -558,6 +563,7 @@ public Action cmdDump(int client, int args) {
 
 
 void LazerBeam(int client) {
+	// Probably my favorite thing about this plugin. It's been pretty useful. Maybe I should print more information? Need feedback.
 	g_bDebug[client] = true; 
 
 	float origin[3];
@@ -594,10 +600,12 @@ void LazerBeam(int client) {
 }
 
 bool TraceEntityFilterNoClients(int entity, int contentsMask) {
+	// Ignore clients
 	return (entity > MaxClients);
 }
 
 bool TREnumTrigger(int entity) {
+	// Only displays some information about triggers from g_sEntityList. edit as need.
 	if (entity <= MaxClients) {
 		return true;
 	}
@@ -624,6 +632,7 @@ Action timerHideTrigger(Handle timer, int entity) {
 }
 
 bool TREnumSolid(int entity) {
+	// Pretty much anything that isnt a trigger/func/brush
 	if (entity <= MaxClients) {
 		return true;
 	}
@@ -639,6 +648,7 @@ bool TREnumSolid(int entity) {
 }
 
 public Action hookTeleStartTouch(int entity, int other) {
+	// Hook for teleports. Will trigger if touched by client or an entity that has m_hOwnerEntity prop, such as rockets.
 	int client;
 	if (!(client = IsValidClient(other)) || !g_bDebug[client]) {
 		return Plugin_Continue;
@@ -668,6 +678,7 @@ public Action hookTeleStartTouch(int entity, int other) {
 }
 
 public Action hookTCAStartTouchPost(int entity, int other) {
+	// Hook for trigger_capture_area. Will trigger if touched by client or an entity that has m_hOwnerEntity prop, such as rockets.
 	int client;
 	if (!(client = IsValidClient(other)) || !g_bDebug[client]) {
 		return Plugin_Continue;
@@ -709,6 +720,7 @@ public Action hookTCAStartTouchPost(int entity, int other) {
 }
 
 public Action eventTouchCP(Event event, const char[] name, bool dontBroadcast) {
+	// Hook for control point events. Will trigger if touched by client (as long as control point has been correctly made by mapper)
 	int client = event.GetInt("player");
 	if (!g_bDebug[client]) {
 		return Plugin_Continue;
@@ -734,9 +746,11 @@ int GetHammerId(int entity) {
 }
 
 int IsValidClient(int client) {
+	// check for valid client...
 	if (0 < client <= MaxClients && IsClientInGame(client)) {
 		return client;
 	}
+	// ... or if it was a projectile or whatever
 	int owner;
 	if (client > MaxClients && HasEntProp(client, Prop_Data, "m_hOwnerEntity") && (0 < (owner = GetEntPropEnt(client, Prop_Data, "m_hOwnerEntity")) <= MaxClients) && IsClientInGame(owner)) {
 		return owner;
@@ -745,6 +759,7 @@ int IsValidClient(int client) {
 }
 
 bool IsValidAdmin(int client) {
+	// edit as need. this is just to ensure messages are only sent to those who can use debug mode and while it's enabled.
 	int player;
 	return ((player = IsValidClient(client)) > 0 && CheckCommandAccess(player, "sm_mapdebug_override", ADMFLAG_GENERIC));
 }
@@ -761,6 +776,7 @@ void PrintToEnabled(bool debugonly = true, const char[] msg, any ...) {
 }
 
 void showTrigger(int entity) {
+	// some code i used from the sm_showtriggers plugin. makes triggers visible
 	int effectFlags = GetEntData(entity, g_iOffset_m_fEffects);
 	int edictFlags = GetEdictFlags(entity);
 
@@ -801,6 +817,7 @@ void hideTrigger(int entity) {
 }
 
 public Action hookSetTransmit(int entity, int other) {
+	// hook transmit so that we can make the triggers visible, but only transmit them to those who have debug enabled
 	if (other <= MaxClients && g_bDebug[other]) {
 		return Plugin_Continue;
 	}
