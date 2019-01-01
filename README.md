@@ -5,7 +5,7 @@ Requires (SM 1.10) or (SDKTools extension version + SM 1.9) found here:
 https://github.com/JoinedSenses/Sourcemod-SDKTools
 
 ## ConVars
-* ```sm_entitydebugger_triggerfilter```
+* ```sm_entitydebugger_triggerfilter```  
 Toggle use of the trigger filter: see g_sEntityFilterList. When enabled, only those in the list will be active
 
 ## Commands
