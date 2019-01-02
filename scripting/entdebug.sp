@@ -111,6 +111,10 @@ public void OnMapStart() {
 	Setup();
 }
 
+public void OnClientConnected(int client) {
+	g_bDebug[client] = false;
+}
+
 public void eventRoundStart(Handle event, const char[] name, bool dontBroadcast) {
 	Setup();
 }
