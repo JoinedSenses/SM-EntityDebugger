@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.3"
+#define PLUGIN_VERSION "0.0.4"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -792,7 +792,7 @@ void PrintToEnabled(bool debugonly = true, const char[] msg, any ...) {
 	VFormat(messageBuffer, sizeof(messageBuffer), msg, 3);
 
 	for (int i = 1; i <= MaxClients; i++) {
-		if ((!debugonly && IsValidAdmin(i) || g_bDebug[i])) {
+		if (IsClientInGame(i) && (!debugonly && IsValidAdmin(i) || g_bDebug[i])) {
 			PrintColoredChatEx(i, CHAT_SOURCE_SERVER, messageBuffer);
 		}
 	}
