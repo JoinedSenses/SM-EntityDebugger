@@ -127,7 +127,7 @@ void Setup() {
 	char areaidx[3];
 	int entity;
 	// Hooks control points - Useful for TF2, unsure of other games
-	while ((entity = FindEntityByClassname(entity, "team_control_point")) != INVALID_ENT_REFERENCE) {
+	while ((entity = FindEntityByClassname(entity, "team_control_point")) != -1) {
 		GetEntPropString(entity, Prop_Data, "m_iszPrintName", name, sizeof(name));
 		g_smCapturePoint.SetValue(name, entity);
 
@@ -136,12 +136,12 @@ void Setup() {
 		//g_iCPCount++;
 	}
 	// Hooks triggers for control points - Useful for TF2, unsure of other games
-	while ((entity = FindEntityByClassname(entity, "trigger_capture_area")) != INVALID_ENT_REFERENCE) {
+	while ((entity = FindEntityByClassname(entity, "trigger_capture_area")) != -1) {
 		SDKHook(entity, SDKHook_StartTouchPost, hookTCAStartTouchPost);
 		//g_iAreaCount++;
 	}
 	// Hooks teleports.
-	while ((entity = FindEntityByClassname(entity, "trigger_teleport")) != INVALID_ENT_REFERENCE) {
+	while ((entity = FindEntityByClassname(entity, "trigger_teleport")) != -1) {
 		SDKHook(entity, SDKHook_StartTouch, hookTeleStartTouch);
 	}
 }
