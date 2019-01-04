@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.4"
+#define PLUGIN_VERSION "0.0.5"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -41,6 +41,8 @@ int g_iHaloSprite;
 int g_iOffset_m_fEffects;
 
 bool g_bDebug[MAXPLAYERS+1];
+
+bool tf2;
 
 char g_sFilePath[128];
 char g_sEntityFilterList[][] = {
@@ -86,7 +88,14 @@ public void OnPluginStart() {
 
 	RegAdminCmd("sm_dumpentities", cmdDump, ADMFLAG_ROOT, "Logs entities to addons/sourcemod/logs/entities/map_name_entities.txt");
 
-	HookEvent("controlpoint_starttouch", eventTouchCP);
+	char gamename[32];
+	GetGameFolderName(gamename, sizeof(gamename));
+	tf2 = StrEqual(gamename, "tf", false);
+
+	if (tf2) {
+		HookEvent("controlpoint_starttouch", eventTouchCP);
+	}
+	
 	HookEvent("teamplay_round_start", eventRoundStart);
 
 	g_aVisibleEntities = new ArrayList();
@@ -126,20 +135,24 @@ void Setup() {
 	char name[32];
 	char areaidx[3];
 	int entity;
-	// Hooks control points - Useful for TF2, unsure of other games
-	while ((entity = FindEntityByClassname(entity, "team_control_point")) != -1) {
-		GetEntPropString(entity, Prop_Data, "m_iszPrintName", name, sizeof(name));
-		g_smCapturePoint.SetValue(name, entity);
 
-		Format(areaidx, sizeof(areaidx), "%i", GetEntProp(entity, Prop_Data, "m_iPointIndex"));
-		g_smCapturePointName.SetString(areaidx, name);
-		//g_iCPCount++;
+	if (tf2) {
+		// Hooks control points - Useful for TF2, unsure of other games
+		while ((entity = FindEntityByClassname(entity, "team_control_point")) != -1) {
+			GetEntPropString(entity, Prop_Data, "m_iszPrintName", name, sizeof(name));
+			g_smCapturePoint.SetValue(name, entity);
+
+			Format(areaidx, sizeof(areaidx), "%i", GetEntProp(entity, Prop_Data, "m_iPointIndex"));
+			g_smCapturePointName.SetString(areaidx, name);
+			//g_iCPCount++;
+		}
+		// Hooks triggers for control points - Useful for TF2, unsure of other games
+		while ((entity = FindEntityByClassname(entity, "trigger_capture_area")) != -1) {
+			SDKHook(entity, SDKHook_StartTouchPost, hookTCAStartTouchPost);
+			//g_iAreaCount++;
+		}	
 	}
-	// Hooks triggers for control points - Useful for TF2, unsure of other games
-	while ((entity = FindEntityByClassname(entity, "trigger_capture_area")) != -1) {
-		SDKHook(entity, SDKHook_StartTouchPost, hookTCAStartTouchPost);
-		//g_iAreaCount++;
-	}
+
 	// Hooks teleports.
 	while ((entity = FindEntityByClassname(entity, "trigger_teleport")) != -1) {
 		SDKHook(entity, SDKHook_StartTouch, hookTeleStartTouch);
