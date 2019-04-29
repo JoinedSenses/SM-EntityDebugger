@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.5"
+#define PLUGIN_VERSION "0.0.6"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -74,19 +74,16 @@ public void OnPluginStart() {
 
 	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC, "Toggle debug mode");
 	RegAdminCmd("sm_gethammerid", cmdGetHammerId, ADMFLAG_GENERIC, "Point, shoot, ???, profit");
-
 	RegAdminCmd("sm_hasprop", cmdHasProp, ADMFLAG_GENERIC, "sm_hasprop <entity> <proptype[send/data]> <propname>");
 	RegAdminCmd("sm_getentprop", cmdGetProp, ADMFLAG_ROOT, "sm_getentprop <returntype[e,i,f,s,v]> <entity> <proptype[send/data]> <propname>");
 	RegAdminCmd("sm_setentprop", cmdSetProp, ADMFLAG_ROOT, "sm_setentprop <entity> <proptype[send/data]> <propname> <value(int,float,string,vector)>"); 
 	// Considering consolidating into above command to allow specifying type, instead of attempting to "intelligently" determine value type - see: CheckType()
 	RegAdminCmd("sm_setentpropent", cmdSetPropEnt, ADMFLAG_ROOT, "sm_setentpropent <entity1> <proptype[send/data]> <propname> <entity2>");
-
 	RegAdminCmd("sm_setvariantstring", cmdSetVarStr, ADMFLAG_ROOT, "SetVariantString - Sets variant string and execs AcceptEntityInput");
 	RegAdminCmd("sm_acceptentityinput", cmdEntInput, ADMFLAG_ROOT, "AcceptEntityInput - Execs AcceptEntityInput");
-
 	RegAdminCmd("sm_triggerfilter", cmdTriggerFilter, ADMFLAG_ROOT, "Toggle trigger filter");
-
 	RegAdminCmd("sm_dumpentities", cmdDump, ADMFLAG_ROOT, "Logs entities to addons/sourcemod/logs/entities/map_name_entities.txt");
+	RegAdminCmd("sm_findentities", cmdFind, ADMFLAG_ROOT, "Lists entities to console");
 
 	char gamename[32];
 	GetGameFolderName(gamename, sizeof(gamename));
@@ -95,7 +92,7 @@ public void OnPluginStart() {
 	if (tf2) {
 		HookEvent("controlpoint_starttouch", eventTouchCP);
 	}
-	
+
 	HookEvent("teamplay_round_start", eventRoundStart);
 
 	g_aVisibleEntities = new ArrayList();
@@ -124,7 +121,7 @@ public void OnClientConnected(int client) {
 	g_bDebug[client] = false;
 }
 
-public void eventRoundStart(Handle event, const char[] name, bool dontBroadcast) {
+public void eventRoundStart(Event event, const char[] name, bool dontBroadcast) {
 	Setup();
 }
 
@@ -582,19 +579,63 @@ public Action cmdDump(int client, int args) {
 		if(IsValidEdict(i)) {
 			GetEdictClassname(i, classname, sizeof(classname));
 
-			Format(ent, sizeof(ent), "%04i|%s", i, classname);
+			int hammerid = -1;
+			if (HasEntProp(i, Prop_Data, "m_iHammerID")) {
+				hammerid = GetHammerId(i);
+			}
+
+			Format(ent, sizeof(ent), "%04i|%s %i", i, classname, hammerid);
 
 			file.WriteLine(ent);
 			count++;
 		}
 	}
 
-	file.Close();
-	PrintToChat(client, "Wrote %i entities to log", count);
+	delete file;
+	//if (client) {
+	//	ReplyToCommand(client, "Wrote %i entities to log", count);
+	//}
+	
 	return Plugin_Handled;
 }
 
+public Action cmdFind(int client, int args) {
+	if (args < 0) {
+		ReplyToCommand(client, "Usage: sm_findentities <classname>");
+		return Plugin_Handled;
+	}
+	char arg[32];
+	GetCmdArg(1, arg, sizeof(arg));
 
+	char ent[64];
+	char classname[PLATFORM_MAX_PATH];
+	for (int i = 0; i <= MAX_EDICT_COUNT; i++) {
+		if (IsValidEntity(i)) {
+			GetEntityClassname(i, classname, sizeof(classname));
+			if (StrContains(classname, arg) == -1) {
+				continue;
+			}
+
+			int hammerid;
+			if (HasEntProp(i, Prop_Data, "m_iHammerID")) {
+				hammerid = GetHammerId(i);
+			}
+
+			int ownerindex;
+			char owner[32];
+			if (HasEntProp(i, Prop_Data, "m_hOwnerEntity")) {
+				ownerindex = GetEntPropEnt(i, Prop_Data, "m_hOwnerEntity");
+				if (0 < ownerindex <= MaxClients) {
+					Format(owner, sizeof(owner), " | %N", ownerindex);
+				}
+			}
+
+			Format(ent, sizeof(ent), "%04i|%s %i%s", i, classname, hammerid, owner);
+			PrintToConsole(client, ent);
+		}
+	}
+	return Plugin_Handled;
+}
 
 void LazerBeam(int client) {
 	// Probably my favorite thing about this plugin. It's been pretty useful. Maybe I should print more information? Need feedback.
@@ -678,7 +719,7 @@ bool TREnumSolid(int entity) {
 
 	int model = HasEntProp(entity, Prop_Data, "m_nModelIndex") ? GetEntProp(entity, Prop_Data, "m_nModelIndex") : -1;
 
-	PrintToEnabled(_, "\x05ID:\x01 %i \x05Class:\x01 %s \x05Model:\x01 %i", GetHammerId(entity), classname, model);
+	PrintToEnabled(_, "\x05Ent:\x01 %i \x05ID:\x01 %i \x05Class:\x01 %s \x05Model:\x01 %i", entity, GetHammerId(entity), classname, model);
 
 	return true;
 }
