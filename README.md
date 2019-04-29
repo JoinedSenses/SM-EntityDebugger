@@ -18,7 +18,7 @@ Shoots lazer beam, provides info about entities it hits (Triggers are whiteliste
 * ```sm_hasprop <entity> <proptype[data/send]> <"propname">```  
 Checks if ent has prop  
   
-* ```sm_getentprop <returntype[e,i,f,s,v]> <entity> <proptype[data/send]/> <propname>```  
+* ```sm_getentprop <returntype[e,i,f,s,v]> <entity> <proptype[data/send]> <propname>```  
 Retrieve prop value - Logs to error if incorrect returntype is specified for propname  
   
 * ```sm_setentprop <entity> <proptype[data/send]> <propname> <Value[int,float,string,vector]>```  
@@ -39,5 +39,5 @@ Toggles the triggerfilter cvar
 * ```sm_dumpentities```  
 Dumps entities to /addons/sourcemod/logs/entities/map_name_entities.log  
   
-* ```sm_findentities <classname>```  
+* ```sm_findentities <"classname">```  
 Finds entities that match classname and prints to info to console  
