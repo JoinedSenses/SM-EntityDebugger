@@ -38,3 +38,6 @@ Toggles the triggerfilter cvar
   
 * ```sm_dumpentities```  
 Dumps entities to /addons/sourcemod/logs/entities/map_name_entities.log  
+  
+* ```sm_findentities <classname>```  
+Finds entities that match classname and prints to info to console  
