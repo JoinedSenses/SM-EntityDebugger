@@ -69,7 +69,7 @@ public Plugin myinfo = {
 }
 
 public void OnPluginStart() {
-	CreateConVar("sm_entitydebugger_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
+	CreateConVar("sm_entitydebugger_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_DONTRECORD).SetString(PLUGIN_VERSION);
 	g_cvarTriggerFilter = CreateConVar("sm_entitydebugger_triggerfilter", "1", "Only provide information for triggers in the filter list?", FCVAR_NONE, true, 0.0, true, 1.0);
 
 	RegAdminCmd("sm_entdebug", cmdCapDebugger, ADMFLAG_GENERIC, "Toggle debug mode");
