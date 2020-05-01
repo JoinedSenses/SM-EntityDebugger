@@ -612,7 +612,7 @@ public Action cmdFind(int client, int args) {
 	for (int i = 0; i <= MAX_EDICT_COUNT; i++) {
 		if (IsValidEntity(i)) {
 			GetEntityClassname(i, classname, sizeof(classname));
-			if (FuzzyCompare(classname, arg, false)) {
+			if (!FuzzyCompare(classname, arg, false)) {
 				continue;
 			}
 
