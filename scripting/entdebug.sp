@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.6"
+#define PLUGIN_VERSION "0.0.7"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -612,7 +612,7 @@ public Action cmdFind(int client, int args) {
 	for (int i = 0; i <= MAX_EDICT_COUNT; i++) {
 		if (IsValidEntity(i)) {
 			GetEntityClassname(i, classname, sizeof(classname));
-			if (StrContains(classname, arg) == -1) {
+			if (FuzzyCompare(classname, arg, false)) {
 				continue;
 			}
 
@@ -635,6 +635,53 @@ public Action cmdFind(int client, int args) {
 		}
 	}
 	return Plugin_Handled;
+}
+
+stock bool FuzzyCompare(const char[] haystack, const char[] needle, bool caseSensitive = true) {
+	int hlen = strlen(haystack);
+	int nlen = strlen(needle);
+
+	if (nlen > hlen) {
+		return false;
+	}
+	if (nlen == hlen) {
+		return strcmp(needle, haystack, caseSensitive) == 0;
+	}
+
+	int n = 0;
+	int h = 0;
+	int p = 0;
+
+	if (caseSensitive) {
+		for (; n < nlen; n++) {
+			int nch = needle[n];
+
+			while (h < hlen) {
+				if (nch == haystack[h]) {
+					h++;
+					p++;
+					break;
+				}
+				h++;
+			}
+		}
+	}
+	else {
+		for (; n < nlen; n++) {
+			int nch = CharToLower(needle[n]);
+
+			while (h < hlen) {
+				if (nch == CharToLower(haystack[h])) {
+					h++;
+					p++;
+					break;
+				}
+				h++;
+			}
+		}	
+	}
+
+	return (p == nlen);
 }
 
 void LazerBeam(int client) {
