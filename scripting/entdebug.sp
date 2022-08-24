@@ -16,7 +16,7 @@
 #include <sdkhooks>
 #include "color_literals.inc"
 
-#define PLUGIN_VERSION "0.0.7"
+#define PLUGIN_VERSION "0.0.8"
 #define PLUGIN_DESCRIPTION "Tool for debugging entities"
 #define EF_NODRAW 32
 #define MAX_EDICT_COUNT 2048
@@ -416,6 +416,8 @@ public Action cmdSetPropEnt(int client, int args) {
 	return Plugin_Handled;
 }
 
+#include <regex>
+
 void SetProp(int client, int entity, PropType proptype, const char[] propname, const char[] value) {
 	if (!IsValidEntity(entity)) {
 		ReplyToCommand(client, "Invalid entity %i", entity);
@@ -430,10 +432,12 @@ void SetProp(int client, int entity, PropType proptype, const char[] propname, c
 		return;
 	}
 
-	char buffer[3][32];
-	float vFloat[3];
+	Regex re = new Regex("\\d+(?:\\.\\d+)? \\d+(?:\\.\\d+)? \\d+(?:\\.\\d+)?");
+	if (re.Match(value) > 0) {
+		delete re;
+		char buffer[3][32];
+		float vFloat[3];
 
-	if (StrContains(value, " ") != -1) {
 		ExplodeString(value, " ", buffer, sizeof(buffer), sizeof(buffer[]));
 		vFloat[0] = StringToFloat(buffer[0]);
 		vFloat[1] = StringToFloat(buffer[1]);
@@ -442,6 +446,8 @@ void SetProp(int client, int entity, PropType proptype, const char[] propname, c
 		ReplyToCommand(client, "%i %s | %s set to %0.2f %0.2f %0.2f", entity, classname, propname, vFloat[0], vFloat[1], vFloat[2]);
 		return;
 	}
+
+	delete re;
 
 	DataType datatype = CheckType(value, strlen(value));
 	switch(datatype) {
